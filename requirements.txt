@@ -1,0 +1,12 @@
+numpy<2
+pandas
+scipy
+scikit-learn
+anndata
+scanpy
+matplotlib
+torch
+scvi-tools==1.4.2
+# optional, for the scVAEIT comparison (needs Python <=3.11):
+# scVAEIT==1.1.1
+# tensorflow[and-cuda]==2.15.1

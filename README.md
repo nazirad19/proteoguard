@@ -109,4 +109,3 @@ For one protein, a participant-block rank argument with 15 exchangeable calibrat
 ## License
 
 MIT, attributed to ProteoGuard contributors. See [LICENSE](LICENSE).
-
