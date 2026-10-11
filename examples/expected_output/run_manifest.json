@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "seed": 20261011,
+  "fit_label": 2026,
+  "base_predictor": "numpy ridge; no totalVI or scVAEIT was trained",
+  "input_sha256": "443c896b242900cc6cfc096ccf85f47c62637459e6ec0daa3630e37dc3450b10",
+  "python": "3.12.14",
+  "numpy": "1.26.4",
+  "pandas": "2.2.3",
+  "selected_anchors": [
+    "AB_P06",
+    "AB_P12",
+    "AB_P07",
+    "AB_P02",
+    "AB_P14"
+  ],
+  "evaluation_targets": [
+    "AB_P00",
+    "AB_P01",
+    "AB_P03",
+    "AB_P04",
+    "AB_P05",
+    "AB_P08",
+    "AB_P09",
+    "AB_P10",
+    "AB_P11",
+    "AB_P13"
+  ],
+  "role_participants": {
+    "design": 12,
+    "evaluation_pool": 25,
+    "train": 12,
+    "width_validation": 4
+  },
+  "calibration_participants_per_repeat": 15,
+  "test_participants_per_repeat": 10,
+  "repeats": 3,
+  "repeats_are_independent": false,
+  "seconds": 1.67
+}

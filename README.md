@@ -8,6 +8,16 @@ ProteoGuard evaluates existing imputers (totalVI and ridge, with a completed scV
 
 ## Deliverables
 
+**Course submission:** start with [START_HERE.md](START_HERE.md). The repository includes [synthetic toy data and a runnable CPU example](examples/README.md), a pinned lightweight environment (`requirements-demo.txt`), tests, and [links to full-size source data](docs/DATA_SOURCES.md).
+
+```bash
+python -m pip install -r requirements-demo.txt
+python examples/run_toy.py
+python -m unittest discover -s tests -v
+```
+
+Use a fresh Python 3.11/3.12 virtual environment (instructions in START_HERE). The toy example trains ridge predictors and executes the actual calibration evaluator; it does not train totalVI/scVAEIT or recreate the cohort tables.
+
 - [Technical report](deliverables/TECHNICAL_REPORT.md)
 - [Word report](deliverables/ProteoGuard_Final_Project_Report.docx)
 - [PDF report](deliverables/ProteoGuard_Final_Project_Report.pdf)

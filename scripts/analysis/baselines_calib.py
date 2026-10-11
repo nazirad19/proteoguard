@@ -11,6 +11,12 @@ WORK = Path(os.environ.get("STEPH_DIR", Path.home() / "projects" / "combat"))
 FITS = [int(s) for s in os.environ.get("STEPH_FITS", "2026,2027").split(",")]
 PREDS = {"totalVI": "pred_fit{seed}.npz", "ridge": "pred_ridge_fit{seed}.npz", "ridge + sentinels": "pred_ridgeanchor_fit{seed}.npz"}
 if os.environ.get("STEPH_PRED"): PREDS = {"totalVI": os.environ["STEPH_PRED"], "ridge": "pred_ridge_fit{seed}.npz"}
+# Optional explicit mapping lets the CPU submission demo run real ridge outputs
+# without manufacturing a file labelled as a trained totalVI prediction.
+if os.environ.get("STEPH_PREDICTORS"):
+    PREDS = json.loads(os.environ["STEPH_PREDICTORS"])
+    if not isinstance(PREDS, dict) or not PREDS or not all(isinstance(v, str) for v in PREDS.values()):
+        raise ValueError("STEPH_PREDICTORS must be a nonempty JSON name-to-NPZ mapping")
 K, N_CAL, N_REPS, ALPHA, GAMMA, DELTA = 5, int(os.environ.get("STEPH_NCAL", "15")), int(os.environ.get("STEPH_REPS", "50")), 0.10, 0.90, 0.20
 EXCLUDE = ["CD38", "HLA", "PDCD1", "PD-1", "PD1", "TIGIT", "IL2RA", "CD25", "CD69", "CD274", "PD-L1", "CTLA4"]
 ISO = re.compile(r"(?i)(isotyp|igg1|igg2|igg_|iggfc|mouse_?ig|rat_?ig|hamster)")
@@ -77,8 +83,12 @@ def calibrate(rule, S, cal):
 rows = []
 for seed in FITS:
     data = {nm: load(f.format(seed=seed), seed) for nm, f in PREDS.items() if (WORK / f.format(seed=seed)).exists()}
-    anchors = {nm: greedy(data[nm]) for nm in ["totalVI", "ridge"] if nm in data}
-    prot = data["totalVI"]["prot"]; iso = [j for j, p in enumerate(prot) if ISO.search(p)]
+    if not data:
+        raise FileNotFoundError(f"No prediction files for fit {seed} in {WORK}")
+    anchors = {nm: greedy(d) for nm, d in data.items() if nm != "ridge + sentinels"}
+    if not anchors:
+        raise ValueError("A base predictor is required before ridge + sentinels")
+    prot = next(iter(data.values()))["prot"]; iso = [j for j, p in enumerate(prot) if ISO.search(p)]
     print(f"[fit {seed}] sentinels:", {nm: [prot[a] for a in A] for nm, A in anchors.items()}, "| isotypes:", [prot[j] for j in iso])
     json.dump({nm: [str(prot[a]) for a in A] for nm, A in anchors.items()}, open(WORK / f"sentinels_fit{seed}.json", "w"))
     E = np.setdiff1d(np.arange(len(prot)), sorted(set(sum(anchors.values(), [])) | set(iso)))   # common evaluation proteins

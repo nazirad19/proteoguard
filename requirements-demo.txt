@@ -1,0 +1,3 @@
+# Lightweight CPU example and unit tests; independent of the GPU environment.
+numpy==1.26.4
+pandas==2.2.3

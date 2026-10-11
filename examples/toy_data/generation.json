@@ -1,0 +1,8 @@
+{
+  "seed": 20261011,
+  "participants": 53,
+  "cells_per_participant": 24,
+  "genes": 12,
+  "proteins": 16,
+  "synthetic": true
+}

@@ -1,5 +1,9 @@
 # Reproducibility status — 11 October 2026
 
+## Submission CPU example
+
+The submission now includes synthetic RNA/ADT counts, a reproducible data generator, and `examples/run_toy.py`. It trains RNA-only and measured-anchor ridge predictors and calls the existing `baselines_calib.py` twice. A new optional `STEPH_PREDICTORS` mapping allows ridge-only execution; ordinary research defaults are preserved. The demo uses separate participants for initial interval-width estimation, unlike the historical in-sample residual setup discussed below. This validates an executable example, not the report's cohort results. See `examples/README.md` and the ZIP's `SUBMISSION_VALIDATION.md` for checks and scope.
+
 ## Fixed
 
 - Stephenson totalVI reads `STEPH_FIT`; COMBAT training/ridge/low-rank scripts read `STEPH_FITS`.
