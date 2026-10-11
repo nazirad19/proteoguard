@@ -1,4 +1,4 @@
-# Reproducibility status — 8 October 2026
+# Reproducibility status — 11 October 2026
 
 ## Fixed
 
@@ -20,8 +20,12 @@ Python syntax parsing of every script/test; eight CPU unit tests; dry-run plans 
 2. Export original participant/protein manifests, result CSVs, environment lock, hardware and prediction/checkpoint checksums. Check distribution terms before committing participant-level data.
 3. Run the ordered pipeline in the research environment on cohort matrices. No cohort training was run in this revision.
 4. Re-render all paper figures from results. Original plotting scripts can skip missing panels; inspect each output.
-5. Confirm the longer scVAEIT run and its count-likelihood/input-scale assumptions. Existing predictions are skipped; changing SV_EPOCHS alone does not retrain them.
+5. Archive the reported completed 200-epoch scVAEIT runs: exact configuration, training logs, prediction checksums and result exports. The updated report records completion and metrics, but those raw artifacts were not supplied locally. Verify input/target scales. Existing predictions are skipped; changing SV_EPOCHS alone does not retrain them.
 6. Audit quantile edge cases before changing calibration sizes: historical participant-block branches can index past available scores; some cell-wise/marker branches cap ranks instead of using an infinite endpoint. Reported n=15 block settings do not hit that overflow. Experimental outputs were not silently recomputed with altered statistical logic.
 7. Resolve inductive versus transductive guarantee scope. Repeated allocations and two overlapping data splits are not independent participants or cohorts.
 
 Source archive commit: `4cd21a01fed12e6176061fdc78ebc2f49f6892d9`. This revision changes execution and documentation; numerical tables retain their original provenance. See the report for scientific limitations, including in-sample ridge residual intervals and cohort-dependent offset correction.
+
+## Course deliverable update on 11 October 2026
+
+The report and presentation now include the completed scVAEIT comparison as supplied results, a six-component evaluation structure, equal overall author credit, and a conceptual study-design illustration. No model, statistical implementation or numerical outputs were changed by this documentation revision. The Word file is editable; native Word pagination could not be verified because the local renderer was unavailable. The PDF was typeset separately from the same content and visually inspected.

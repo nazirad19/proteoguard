@@ -4,16 +4,23 @@ Participant-level calibration and small measured-protein panels for RNA-to-prote
 
 **Biological question:** can RNA, supplemented by a small measured surface-protein panel, support reliable immune-marker calls in participants whose target proteins were not measured?
 
-ProteoGuard evaluates existing imputers (totalVI and ridge), anchor-based correction, participant-block calibration, and selective biomarker calls. It does not introduce a new totalVI architecture. The reported shared-offset mechanism is strongest in Stephenson and weaker in COMBAT. Measured-panel inputs and calibration must be distinguished from post-hoc offset correction. These are research results, not validated clinical decisions.
+ProteoGuard evaluates existing imputers (totalVI and ridge, with a completed scVAEIT comparison reported), anchor-based correction, participant-block calibration, and selective biomarker calls. It does not introduce a new totalVI architecture. The reported shared-offset mechanism is strongest in Stephenson and weaker in COMBAT. Measured-panel inputs and calibration must be distinguished from post-hoc offset correction. These are research results, not validated clinical decisions.
 
 ## Deliverables
 
 - [Technical report](deliverables/TECHNICAL_REPORT.md)
-- [Presentation: 9 main slides + 4 backup slides](deliverables/ProteoGuard_Final_Project.pptx)
+- [Word report](deliverables/ProteoGuard_Final_Project_Report.docx)
+- [PDF report](deliverables/ProteoGuard_Final_Project_Report.pdf)
+- [Presentation: 11 main slides + 7 backup slides](deliverables/ProteoGuard_Final_Project.pptx)
+- [Illustrated study design](deliverables/figures/ProteoGuard_study_design.png)
+- [Deliverable provenance and format notes](docs/DELIVERABLES.md)
 - [Reproducibility status](docs/REPRODUCIBILITY.md)
 - [Data preparation and file schemas](docs/DATA_PREPARATION.md)
 
 ## Status
+
+The 11 October 2026 course update aligns the report and slides with the six assessment criteria, adds an illustrated study design, and records the reported completed scVAEIT comparison. Anel Umirbaeva and Nazira Dunbayeva receive equal overall contribution credit. Detailed role allocations are proposed for author confirmation. This is a documentation update, not a new training run.
+
 
 The source archive contained 33 analysis scripts at commit `4cd21a01fed12e6176061fdc78ebc2f49f6892d9`. This revision fixes configuration, pipeline ordering and budget-figure regeneration, and adds a count-data adapter and CPU tests. **Full cohort training and result reproduction have not been rerun as part of these fixes.** Matrices, predictions, exact split manifests and result CSVs were not supplied in the archive. Report numbers remain supplied results, not newly verified outputs.
 
@@ -42,7 +49,7 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-This is a dependency specification, not the original server's environment lock. Record `python -m pip freeze`, GPU/driver information, seeds and input checksums for each full run. scVAEIT is optional and should use a separate TensorFlow environment; see requirements.txt. Its longer-run completion is unverified.
+This is a dependency specification, not the original server's environment lock. Record `python -m pip freeze`, GPU/driver information, seeds and input checksums for each full run. scVAEIT is optional and should use a separate TensorFlow environment; see requirements.txt. The updated source report describes completed 200-epoch runs per split. Reported metrics are included in the report; raw logs, convergence and prediction-level outputs have not been independently verified locally.
 
 ## Core pipeline
 

@@ -1,0 +1,32 @@
+Built-in image generation. Conceptual figure, not measured data.
+
+Initial prompt
+Create a publication-quality scientific study-design infographic for ProteoGuard, widescreen 16:9, very high resolution. White background, navy headings, blue/teal/purple/orange accents, clean illustrated biomedical textbook style like the supplied examples. Precise readable text, generous whitespace, NOT a generic corporate flowchart. Use detailed small PBMC/immune-cell illustrations, RNA strands, antibody Y shapes, heatmap matrices, participant silhouettes, and statistical interval icons. All plots are clearly conceptual, with no invented empirical numbers.
+
+Title exactly: "ProteoGuard study design"
+
+Two clearly connected horizontal bands.
+
+TOP BAND label "A  Data and participant roles".
+Left: blood tube and immune cells next to RNA and protein matrices. Text: "Paired RNA + protein measurements" and "Stephenson: 118 participants" and "COMBAT: 122 participants" and "192 ADT channels per cohort".
+Then four compact visibly separate participant groups across the remainder of this band, with color-coded headings:
+"TRAIN" / "59 / 61 participants" / "Learn RNA–protein relationships"
+"DESIGN" / "20 / 20 participants" / "Choose anchors, corrections and thresholds"
+"CALIBRATE" / "15 / 15 participants" / "Set uncertainty ranges"
+"TEST" / "20 / 26 participants" / "Evaluate hidden target proteins"
+Small note under these groups exactly: "Counts: Stephenson / COMBAT. Four additional Sanger participants evaluated separately."
+Make clear these are distinct participant roles, not people moving through stages.
+
+BOTTOM BAND label "B  Prediction and evaluation".
+Four left-to-right illustrated steps connected with precise arrows:
+1. Heading "Available measurements". RNA strands + exactly five colored Y-shaped antibody/surface-protein icons. Text "RNA + 5 measured anchors". Next to it a pale grey masked protein matrix labeled "Target proteins hidden".
+2. Heading "Predict missing proteins". Stylized model latent diagram next to a prediction matrix. Text "totalVI or ridge" and "Additional comparator: scVAEIT". Two small alternative paths, explicitly labeled "Anchors as inputs" and "Post-hoc correction". Do not imply they are the same model.
+3. Heading "Calibrate by participant". Grouped cell icons within participant outlines plus simple prediction intervals. Text "Separate calibration participants" and "Account for shared cell errors". A thin color-coded connection from CALIBRATE in top band to this stage, distinct from prediction arrows.
+4. Heading "Call or abstain". Immune cell population illustration and three unambiguous decision labels: "HIGH" in teal, "LOW" in blue, "INCONCLUSIVE" in grey. Text "Marker-positive fraction" and "Check against measured truth". A thin connection from TEST top band to this evaluation stage.
+
+Bottom footer exactly: "Held-out RNA is included during fitting; target protein labels remain hidden." Second footer line: "Research evaluation of immune markers, not a clinical decision rule."
+
+Important scientific constraints: no claim of whole-proteome reconstruction, no guaranteed success for each individual, no new totalVI architecture, no disease mechanism or therapeutic effect, no performance numbers. ADT refers to antibody-derived tags. Show measured anchors and concealed targets as different information. Keep the body text large enough for a lecture slide. The resulting infographic is a conceptual illustration of the actual design, not data.
+
+Final targeted correction
+Remove illustrative 95% interval label; label the VAE drawing totalVI latent space; explicitly mark matrices and plots as illustrative.

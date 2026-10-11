@@ -1,172 +1,174 @@
-# ProteoGuard: reliable immune-marker imputation for new participants
+# ProteoGuard
 
-Course final project · revised 8 October 2026
+Small protein panels for reliable immune marker inference
 
-## Summary and biological question
+Anel Umirbaeva and Nazira Dunbayeva
+Equal overall contributions
+Final project report   11 October 2026
 
-**Can RNA plus a small measured protein panel support reliable participant-level calls of immune activation markers in new participants?** ProteoGuard addresses this question with protein imputation, participant-block conformal calibration, and selective biomarker calls. Its therapeutic-discovery connection is the reliability of immune-phenotyping and candidate biomarker measurements. The present experiments do not validate a treatment-selection rule or a clinical diagnostic threshold.
+## 1 Problem definition
 
-ProteoGuard extends the **analysis pipeline around totalVI**, rather than changing its architecture or training objective. The same calibration and correction procedures also apply to ridge regression. Across the two COVID-era PBMC cohorts studied, participant-block calibration improved the frequency with which held-out participants reached the specified within-participant coverage target. Giving measured proteins directly to ridge improved interval efficiency in both cohorts. Post-hoc correction helped in Stephenson but added little, or worsened some outcomes, in COMBAT. Biomarker decisions remained selective: COMBAT supported considerably fewer calls than Stephenson.
+Can RNA plus a small measured surface-protein panel support reliable participant-level calls of immune activation markers when most proteins were not measured? ProteoGuard tests this question using existing predictors, participant-level uncertainty calibration and selective high or low marker calls. Its therapeutic-discovery relevance is the reliability of immune phenotyping and candidate biomarker measurements. The experiments do not establish treatment efficacy or a clinical diagnostic rule.
 
-This report summarizes the supplied analyses and includes a static inspection of the subsequently supplied code archive. The subsequent repository revision fixed execution/configuration issues and added CPU tests, but did not rerun training or independently verify numerical results against prediction files. Preliminary scVAEIT results are excluded from the main conclusions.
+CITE-seq measures RNA and antibody-derived tags (ADTs) in the same cells. RNA reports gene activity, while surface proteins help characterize immune-cell identities and states. Imputation estimates unmeasured proteins, but a useful estimate must also communicate when a participant-level interpretation remains uncertain. Here the target is log(1 + observed ADT count), which includes measurement variation as well as biology.
 
-## Background and contribution
+The results support two specific findings: measured proteins improved ridge prediction in both studied cohorts, and participant-block calibration improved the chosen reliability measure. Post-hoc correction was cohort-dependent. COMBAT supported substantially fewer biomarker calls, despite acceptable calibrated coverage.
 
-CITE-seq measures RNA and antibody-derived tags (ADTs) in the same cells. totalVI jointly models RNA and protein counts and can generate posterior-predictive protein distributions. For a cell whose protein panel is hidden, the analysis predicts proteins using the available RNA and model context. The response variable here is **log(1 + observed ADT count)**, which includes technical variation as well as biological signal.
+## 2 Major challenges and existing limitations
 
-Prior work already examined uncertainty under RNA-to-protein dataset transfer, including sciPENN. Hierarchical conformal methods already address grouped observations, and dsb studies shared technical variation in measured CITE-seq proteins. ProteoGuard therefore does not claim to invent uncertainty evaluation, grouped conformal prediction, or technical-factor correction. Its contribution is an evaluated framework connecting participant-level coverage, small measured panels, correction controls, and immune-marker decisions.
+The field faces imperfect RNA–protein correspondence, sparse RNA measurements, antibody background, staining and sequencing-depth variation, partially overlapping panels, and rare cell states with few examples. Across studies, donor composition, disease context and processing conditions can change. Removing batch effects can also remove biological variation. Measurement cost, reference-data availability and computational demands constrain deployment [1–4].
 
-Cells from one participant can share errors. Pooled cell-wise calibration may attain roughly 90% coverage overall while particular participant–protein pairs remain undercovered. This is a statement about **participant–protein pairs**, not the fraction of participants who fail on their whole panel. The experiments test whether calibrating whole participant blocks improves the chosen reliability objective.
+Existing methods already address substantial parts of this problem. totalVI jointly models RNA and protein counts, background and missing proteins [1]. sciPENN predicts proteins and quantifies uncertainty [2]. scVAEIT supports incomplete multimodal panels [3]. dsb models technical noise in measured ADTs [4]. Hierarchical conformal methods address grouped observations [5]. Our selected challenges are participant-level reliability and the value of a small measured panel, rather than all sources of missing biological information.
 
-## Study design
+## 3 Proposed method and study design
 
-| Cohort | Analysed data reported by the source | Model training | Held-out participant allocation |
-|---|---|---|---|
-| Stephenson et al. | 118 participants; 115,708 cells; 192 ADTs; 3 sites | 59 participants with RNA and protein | 20 design; 35 in the calibration/test pool, repeatedly split 15/20; 4 Sanger evaluation participants without local calibration participants |
-| COMBAT | 122 participants; 118,649 cells; 192 ADTs; 2 institutes; 10 processing pools | 61 participants with RNA and protein | 20 design; 41 in the calibration/test pool, repeatedly split 15/26 |
+![Figure 1. ProteoGuard study design. Illustrations and matrices are conceptual. Participant counts are Stephenson / COMBAT. The four Sanger evaluation participants are additional to the 20-person Stephenson test allocation.](figures/ProteoGuard_study_design.png)
 
-The supplied analysis excludes LPS-stimulated Stephenson samples and low-density-neutrophil preparations in COMBAT, and caps each participant at 1,000 cells. Two separately drawn train/held-out splits were analysed per cohort. Because these splits reuse cohort participants, they are repeated evaluations within a cohort, not independent cohort replications.
+Figure 1. ProteoGuard study design. Illustrations and matrices are conceptual. Participant counts are Stephenson / COMBAT. The four Sanger evaluation participants are additional to the 20-person Stephenson test allocation.
 
-The roles are distinct:
+| Cohort | Participants | Cells | Processing |
+| --- | --- | --- | --- |
+| Stephenson [6] | 118 | 115,708 | 3 sites |
+| COMBAT [7] | 122 | 118,649 | 2 institutes; 10 pools |
 
-1. **Training participants:** fit the base predictor using RNA and measured proteins.
-2. **Design participants:** select anchors, fit any correction, and define biomarker thresholds using their measured proteins. These participants are excluded from base-model training.
-3. **Calibration participants:** use measured target proteins to compute conformal scores, after freezing the design choices.
-4. **Test participants:** expose RNA and only the permitted anchor channels to the prediction pipeline. Hidden target proteins are reserved for evaluation.
 
-**Transductive input use:** the supplied totalVI trainers include held-out participants' RNA during model fitting while masking their proteins. The ridge-with-sentinels script also fits its RNA SVD on all available RNA before fitting ridge on training participants. Thus the experiments hold out target protein labels; they are not a strictly inductive test of a frozen model on participants whose RNA was never available during fitting. This input-use distinction also matters when applying the exchangeability argument to deployment.
 
-This deployment requires a fully measured reference/calibration cohort, even though a test participant supplies only a small panel. Sanger was represented in the broader training/design scheme: the four-person subgroup tests the absence of local calibration, not a completely unseen site. Random participant splits in COMBAT evaluate represented processing environments; new-pool transfer is a separate question.
+Both analyses contain 192 ADT channels before target exclusions. The pipeline excludes LPS-stimulated Stephenson samples and low-density-neutrophil preparations in COMBAT, and caps each participant at 1,000 cells. Within each split, different people provide protein labels for training, design, calibration and testing. Design participants select anchors, fit corrections and set thresholds. Calibration participants adjust intervals after these choices are fixed. Test target proteins remain concealed until evaluation.
 
-## Methods
+Stephenson allocates 59 training and 20 design participants, then repeatedly divides a 35-person pool into 15 calibration and 20 test participants. Four Sanger participants receive a separate evaluation without local calibration participants. COMBAT allocates 61 training and 20 design participants, then divides 41 into 15 calibration and 26 test participants. Two train/held-out splits per cohort reuse people; they are repeated evaluations, not independent replications.
 
-### Predictors and measured panels
+Input visibility is transductive: held-out RNA enters totalVI fitting and the ridge RNA SVD basis while target protein labels remain hidden. The scVAEIT comparison also exposes its allowed five anchors. This evaluates imputation in an integrated cohort, rather than a frozen predictor applied to entirely unseen participant RNA. Full measurements remain necessary in reference, design and calibration participants.
 
-The base predictors are totalVI and ridge regression from RNA components to log1p ADT. totalVI intervals use the efficiency-corrected posterior-predictive protein likelihood (`py_norm_` in the reported scvi-tools 1.4.2 implementation), decoded in the training batch. This readout distinction is essential for count-scale evaluation. The manuscript describes 100 predictive draws and the 5th and 95th percentiles. It also describes in-sample residual quantiles for the initial ridge intervals; this limitation should be retained until an out-of-fold implementation is verified.
+## Predictors calibration and marker decisions
 
-For participant i and protein j, the pipeline estimates the median cell residual relative to the predictor's centre. Five anchor channels supply observed residuals in a new participant. Design participants determine the selected panel and any learned map. Named decision markers are excluded from anchor selection. The correction comparisons are:
+### Predictors and measured anchors
 
-- No participant-specific correction; the budget analysis uses a design-mean reference, which should not be confused with raw uncalibrated totalVI.
-- A common offset: add the mean anchor residual to every target protein.
-- A shared map: fit a protein-specific intercept and slope from the mean anchor residual.
-- A multi-anchor ridge map: retain separate weights for each anchor.
-- An isotype-driven map, where appropriate measured isotype controls are available.
-- **Ridge with measured inputs:** append per-cell anchor values and participant anchor summaries to RNA features, without post-hoc correction.
+totalVI compresses each cell into a shared latent representation and learns RNA and protein count distributions, including a protein background component [1]. Protein intervals use likelihood-consistent posterior-predictive sampling, including the learned efficiency term in the reported scvi-tools 1.4.2 implementation. The manuscript describes 100 draws and the 5th and 95th percentiles. These target observed ADT counts rather than background-free expression. Ridge predicts log1p ADT from RNA components and starts with residual-based intervals. Its historical in-sample residual quantiles may understate out-of-sample errors.
 
-The PCA mechanism analysis uses cell-type-balanced participant residuals. The supplied slides identify design participants as the PCA set and all 59 held-out Stephenson participants as the association-analysis set. These sets must remain separately labelled in the provenance tables.
+We compare small measured panels in two ways. A correction uses each participant’s median anchor residuals to adjust other proteins. Controls include a common offset, a protein-specific shared map, a multi-anchor ridge map and an isotype-driven map. The alternative measured-input ridge appends anchor values and participant summaries to RNA features. A design-mean reference already includes an average correction and must not be labelled fully uncorrected. Decision markers are excluded from anchor selection. Matched evaluations use the same 177–179 target proteins after excluding the relevant anchors and isotypes.
 
-### Calibration and its exact scope
+### Participant calibration and its scope
 
-For an initial interval [l, u], correction s, and observed log1p count y, define the cell score as max(l + s − y, y − u − s). For each calibration participant, take the ceil(0.90 × number of cells)-th smallest score. Across n calibration participants, take the k-th score, where k = ceil((n + 1)(1 − δ)) and δ = 0.20. Apply that adjustment to the new participant's intervals.
+For initial interval [l, u], correction s and observed log1p count y, the cell score is max(l + s − y, y − u − s). Each participant contributes an upper quantile of its cell scores. The implementation uses NumPy method="higher", giving one-based order ceil(0.90 × (m − 1)) + 1 for m cells. This matches the implementation and can be one order statistic more conservative than ceil(0.90 × m).
 
-With n = 15, k = 13. Under exchangeability of complete participant blocks, with the predictor and design choices fixed appropriately, the standard rank argument gives, **for each protein separately**:
+Across n calibration participants, choose order k = ceil((n + 1) × 0.80). At n = 15, k = 13. Under exchangeability of complete participant scores and an appropriately fixed or symmetric pipeline, the rank argument gives, separately for each protein, P(new participant’s empirical cell coverage ≥ 90%) ≥ 13/16 = 81.25%. This is marginal over participant sampling, not a guarantee for every person, the whole panel or an unfamiliar site. Transductive calibration/test symmetry requires justification. A new participant arriving after fitting is a different deployment setting.
 
-> P(empirical coverage across the new participant's evaluated cells ≥ 90%) ≥ 13/16 = 81.25%.
+Pooled cell-wise conformal and hierarchical conformal prediction (HCP) are comparators. HCP targets marginal coverage of an observation from a new group, a different quantity. Wider intervals and higher participant success do not establish that HCP failed. Historical code needs edge-case checks before changing calibration sizes, including an infinite quantile when k > n; the reported n = 15 setting does not reach that edge case.
 
-This is marginal over calibration and future-participant sampling. It is not a promise for every participant, simultaneous coverage across all proteins, or coverage of an unlimited population of future cells from that participant. If k > n, the mathematical definition uses an infinite quantile. Scores can be negative, allowing interval contraction. Dependence among cells is allowed within a participant block, while exchangeability of complete scores remains an assumption. Because the supplied predictors use held-out RNA transductively, their fitting procedure must also respect the relevant calibration/test symmetry; the standard independent, fixed-predictor argument is not by itself a deployment proof for an additional participant arriving later.
+### Biological decision rule
 
-The archive implements the inner quantile with `np.quantile(..., method="higher")`. This can be one order statistic above the stated minimum ceil(0.90 × m), making the inner rule conservative. Its outer participant-block implementation does not guard k > n, although k = 13 is valid in the reported n = 15 setting. These implementation details should be reconciled before generalizing to other calibration sizes.
+A mixture fitted to design measurements defines cell positivity for eligible proteins and cell types. The participant readout is the fraction of positive cells, compared with a design-cohort median. A calibrated fraction interval entirely above or below that threshold permits a high or low call; otherwise the procedure abstains. Selective error among calls is an empirical endpoint, not a consequence automatically guaranteed by cell-level interval coverage. Thresholds are cohort-relative, not clinical.
 
-Comparators are pooled cell-wise conformal and hierarchical conformal prediction (HCP). HCP targets marginal coverage for an observation from a new group, a different objective. Higher coverage and wider intervals are a trade-off, not failure of HCP to meet ProteoGuard's lower bound.
+## 4 Technical rationale and 5 Main results
 
-### Biomarker decisions
+The anchor rationale is that participant errors share a low-dimensional component. In Stephenson, PC1 explained 75.6% of participant-offset variance against a 9.8% permutation reference, with 98.4% of loadings sharing a sign. Its ADT-depth association was ρ = 0.83. COMBAT showed a weaker component, explaining 38–40%, associated with depth and processing pool. These observations support a technical contribution but do not prove a purely technical cause or exclude biology.
 
-For each eligible protein and cell type, a two-component mixture fitted on design measurements defines cell positivity. A participant's readout is the fraction of positive cells. The design-cohort median defines the participant high/low threshold.
+Participant calibration addresses a separate issue: cells from one person share errors, so increasing cell counts does not create more independent participants. Our contribution is the combined evaluation of measured panels, correction controls and participant-level decisions. Protein imputation, technical correction and grouped conformal prediction already have prior art [1–5].
 
-Calibrate an interval around the predicted positive fraction using calibration participants. Call **high** if the entire interval lies above the threshold; call **low** if it lies below; otherwise abstain. Marginal interval coverage does not guarantee the error rate among the selected calls. Report selective error empirically, at matched call rates, with participant-level uncertainty and denominators. These thresholds are cohort-relative, not clinical.
+![Figure 2. Supplied comparison of calibration rules and interval efficiency. The dashed 13/16 bound assumes exchangeability and appropriate fitting symmetry. HCP targets a different marginal quantity.](figures/calibration_comparison.png)
 
-### Evaluation
+Figure 2. Supplied comparison of calibration rules and interval efficiency. The dashed 13/16 bound assumes exchangeability and appropriate fitting symmetry. HCP targets a different marginal quantity.
 
-Primary summaries are the fraction of participant–protein pairs below 85% empirical coverage, the share of participants reaching at least 90% coverage per protein, interval score, and median interval width. The 85% threshold is a diagnostic; it is not the 90% target in the proposition. Common target sets contain 177–179 proteins depending on the fit after excluding measured anchors and isotypes. Cross-method comparisons must use the same target list within each evaluation.
-
-Reported summaries average 50–200 repeated calibration/test allocations. The supplied analysis uses participant bootstrap intervals after averaging a participant's repeated test evaluations. Repeated allocations do not increase the number of independent participants. Exact target lists and participant IDs are needed to reproduce each table.
-
-## Results
-
-### A dominant shared residual component
-
-In Stephenson, PC1 explained 75.6% of participant-offset variance versus a 9.8% permutation reference, with 98.4% of loadings sharing a sign. Its association with ADT depth was ρ = 0.83. No adjusted severity association was detected. These findings are consistent with a shared technical contribution, but do not establish a purely technical cause: depth and residual summaries derive from the same measurements, and absence of a detected association is not evidence of no biological effect.
-
-One selected anchor captured much of the participant-offset signal in the budget experiment (reported R² 0.85–0.86). The shared map plateaued between approximately one and ten anchors. Deterioration at twenty is consistent with dilution by less informative anchors, but that mechanism was not isolated. High offset R² measures recovery of shared participant errors, not recovery of all protein-specific biology absent from RNA.
-
-### Calibration and correction controls in Stephenson
-
-| Predictor/correction | Calibration | Pairs below 85% | Participants reaching 90%, averaged across proteins | Interval score | Median width |
-|---|---|---:|---:|---:|---:|
-| Ridge + shared map | Cell-wise | 13.5% | 0.61 | 2.71 | 1.94 |
-| Ridge + shared map | HCP | 0.9% | 0.96 | 2.94 | 2.54 |
-| Ridge + shared map | Participant-block | 4.2% | 0.83 | 2.77 | 2.19 |
-| Ridge + measured inputs | Cell-wise | 14.3% | 0.58 | 2.28 | 1.71 |
-| Ridge + measured inputs | Participant-block | 4.5% | 0.82 | 2.33 | 1.90 |
-| totalVI + shared map | Participant-block | 5.2% | 0.83 | 2.78 | 2.22 |
-
-Participant-block summaries were consistent with the specified participant-level target. HCP attained higher empirical coverage and wider intervals. These methods have different guarantees, so interval width alone does not establish superiority.
-
-With ridge and participant-block calibration, a common offset, isotype panel, and learned shared map gave interval scores of 2.79, 2.81, and 2.77, respectively. Their undercoverage rates were 4.4%, 4.5%, and 4.2%. Thus the learned map offered little additional benefit in these comparisons. Isotypes may provide usable measurements without adding new biological markers when suitable controls already exist in the assay; this is not a universal zero-cost deployment claim.
-
-Giving measured proteins directly to ridge produced the lowest interval score among these completed comparisons: 2.33 versus 2.77 for the post-hoc shared map, with similar coverage. Reported RMSE decreased from 0.72 for the RNA-only predictor to 0.54 with measured inputs. The interval-score and RMSE contrasts have different reference pipelines and should be labelled separately.
-
-### Biomarker decisions
-
-In Stephenson, the supplied course report records 1.6–2.3% observed selective error at 27–33% call rates across the reported calibrated pipelines. Naive point thresholding made errors on roughly 31–33% of all decisions. That is not a matched-call-rate comparison.
-
-The supplied full draft also reports the following matched comparison at a **27% call rate**, with ranges across the two base predictors:
-
-| Selection/correction procedure | Observed error among calls |
-|---|---:|
-| Random abstention | 31.7–32.9% |
-| Distance from the threshold | 20.1–20.6% |
-| Anchor correction without calibration | 4.7–6.6% |
-| ProteoGuard | 2.1–2.2% |
-
-These descriptive ranges are not confidence intervals. For named markers, per-marker call counts and participant-level confidence intervals remain necessary before emphasizing very low or zero observed errors.
-
-### Replication and limits in COMBAT
-
-PC1 explained 38–40% of participant-offset variance; 99% of loadings shared a sign and the ADT-depth association was ρ = 0.63–0.69. Association with processing pool supports a technical contribution. The nonsignificant clinical-group association does not rule out biological contributions.
-
-With measured inputs, ridge RMSE decreased from 0.64 to 0.55, interval score from 2.81 to 2.41, and median width from 2.15 to 1.83, approximately 15% narrower. The reported participant success fraction was 0.82 for this pipeline. Across calibration arms, cell-wise success was approximately 0.55 for corrected or measured-input pipelines, while HCP was approximately 0.96–0.99. Uncorrected totalVI was an exception to a blanket 0.82 summary: participant-block success was 0.90 in the supplied full table.
-
-Post-hoc correction did not add a consistent benefit. For totalVI, undercoverage increased from 2.1% without correction to approximately 4.0–5.4% with the reported corrections. This is consistent with correction being less useful when shared shifts are small; the experiment does not by itself identify a causal bias–variance decomposition.
-
-Biomarker calls were considerably harder: calibrated methods made only 5–9% of decisions, with 5–9% observed selective error. The framework abstained frequently; broad recovery of participant biomarker calls therefore did not replicate.
-
-## Limitations, unfinished work, and reproducibility
-
-The completed evidence is from two COVID-era PBMC cohorts. Benefits of measured inputs and participant-block calibration replicated in these cohorts; their universality is not established. Post-hoc correction was cohort-dependent. Four Sanger participants are insufficient to establish a general requirement for local calibration at every site. New-pool COMBAT evaluation remains a separate sensitivity analysis.
-
-The source report describes scVAEIT at 100 epochs as preliminary and a longer run as ongoing. The supplied `scvaeit_run.py` instead defaults to 200 epochs through `SV_EPOCHS`, and skips a fit if its prediction file already exists. Changing the epoch variable does not establish that an existing result was retrained or resumed. No live server log or completed comparison was supplied. scVAEIT must be evaluated on the same observable inputs and target scale, with training and convergence documented, before making a model-superiority claim.
-
-**Code provenance:** the supplied ZIPs contained identical non-Git files: 33 Python scripts, README, requirements, an MIT license template and gitignore. Archived source commit: `4cd21a01fed12e6176061fdc78ebc2f49f6892d9`. The revised repository is [nazirad19/proteoguard](https://github.com/nazirad19/proteoguard), kept private at this stage.
-
-**Repository corrections (8 October 2026):** Stephenson training now accepts `STEPH_FIT`; COMBAT fit lists and previously fixed paths accept environment overrides. An ordered runner performs baseline calibration before measured-input ridge, generating the required sentinel JSON, and repeats calibration afterwards. Figure 7 now loads `anchor_budget.csv`, checks its schema/completeness, aggregates each fit separately and writes a summary CSV. The former hard-coded illustration is retained as `fig_budget_historical.py`, labelled historical. A raw-count validator and explicit preparation adapter have been added; these are not claimed to be the missing original preparation scripts.
-
-Eight CPU unit tests passed locally, covering budget aggregation, missing/duplicate results, undefined no-call error, pipeline dependencies and count validation. All scripts pass syntax parsing. A GitHub Actions workflow repeats lightweight checks; these do not reproduce the cohort analyses. The repository targets Python 3.11 and scvi-tools 1.4.2; the historical environment lock is still needed.
-
-| Component | Script under `scripts/` | Current status |
+| Matched comparison | Stephenson | COMBAT |
 | --- | --- | --- |
-| Preparation | `combat/combat_prep.py`, `prepare_data.py` | Original COMBAT script; reconstructed adapter for other layouts |
-| totalVI predictions | `stephenson/stephenson_donor_calibration.py`, `combat/combat_totalvi.py` | Configurable fit seeds; efficiency-corrected predictive sampling |
-| Controls and intervals | `analysis/baselines_calib.py`, `analysis/proteoguard_metrics.py` | Present; not rerun on real predictions locally |
-| Biomarker decisions | `analysis/marker_calls*.py`, `analysis/risk_coverage*.py` | Present; numerical outputs not supplied |
-| Provenance exports | `analysis/provenance_audit.py` | Script present; server-generated manifests still needed |
-| Anchor-budget figure | `figures/fig_budget.py` | CSV-driven replacement; historical illustration retained separately |
+| Ridge RMSE: RNA only to measured inputs | 0.72 to 0.54 | 0.64 to 0.55 |
+| Participant success: cell-wise to participant calibration | 58% to 82% | 55% to 82% |
 
-Remaining work is explicit: recover or validate exact Stephenson/Hao preparation; export source participant/target manifests, environment lock, hardware metadata and result CSVs; rerun the ordered pipeline and figures on the original cohort files; and confirm the longer scVAEIT run. The full AnnData/HVG preparation path has not been tested on the cohort sources locally. Numerical research results in this report have not changed as a consequence of these code fixes. Fresh-clone end-to-end reproduction remains unverified.
 
-## Conclusion
 
-Participant-block calibration improved coverage reliability in both cohorts studied, and a small measured protein panel improved interval efficiency when used as predictor inputs. Post-hoc correction helped in Stephenson but added little in COMBAT. Biomarker calls remained selective, with substantially fewer usable calls in COMBAT. These findings support evaluating protein imputation at the participant level and measuring a small panel where feasible, while reporting abstention and the limits of transfer.
+RMSE is prediction error on the log1p count scale. Participant success is the share reaching at least 90% empirical cell coverage, assessed per protein and summarized. The accuracy comparison adds measured inputs. The reliability comparison changes calibration on the same measured-input ridge predictions. These are separate interventions. Displayed summaries do not supply confidence intervals or establish universal benefit.
 
-## References
+The learned shared map offered little over simple controls in Stephenson: interval scores were 2.77 for the map, 2.79 for a common offset and 2.81 for the isotype-driven map. Measured-input ridge reached 2.33 with similar coverage. In COMBAT, measured-input ridge improved interval score from 2.81 to 2.41 and width from 2.15 to 1.83. Post-hoc totalVI correction was inconsistent, with undercoverage rising from 2.1% to approximately 4.0–5.4% across reported corrections.
 
-- [Gayoso et al. 2021: totalVI](https://www.nature.com/articles/s41592-020-01050-x)
-- [Stephenson et al. 2021: single-cell multi-omics in COVID-19](https://www.nature.com/articles/s41591-021-01329-2)
-- [COMBAT Consortium 2022: a blood atlas of COVID-19](https://doi.org/10.1016/j.cell.2022.01.012)
-- [Lee, Barber and Willett: distribution-free inference with hierarchical data](https://arxiv.org/abs/2306.06342)
-- [Dunn, Wasserman and Ramdas: two-layer hierarchical prediction sets](https://arxiv.org/abs/1809.07441)
-- [Lakkis et al. 2022: sciPENN](https://doi.org/10.1038/s42256-022-00545-w)
-- [Du et al. 2022: scVAEIT](https://doi.org/10.1073/pnas.2214414119)
-- [Mulè et al. 2022: dsb](https://www.nature.com/articles/s41467-022-29356-8)
+## Biomarker usefulness and the completed comparator
 
-Numerical source documents: *ProteoGuard final project report.md* (8 October 2026), *ProteoGuard — Final Project.pptx*, and the previously supplied *ProteoGuard Paper Draft (2).md* for explicitly identified full-table and matched-call-rate results. Code-inspection source: the two subsequently supplied ProteoGuard ZIP archives, commit `4cd21a01fed12e6176061fdc78ebc2f49f6892d9`.
+![Figure 3. Original risk–coverage curves and named-marker summaries. Compare methods at the same call rate. The named-marker bars use different call rates; zero observed errors do not establish zero population risk.](figures/biomarker_calls.png)
+
+Figure 3. Original risk–coverage curves and named-marker summaries. Compare methods at the same call rate. The named-marker bars use different call rates; zero observed errors do not establish zero population risk.
+
+At a matched 27% call rate in Stephenson, observed error was 31.7–32.9% with random abstention, 20.1–20.6% with threshold-distance selection, 4.7–6.6% after anchor correction, and 2.1–2.2% with ProteoGuard. These ranges span the two base predictors, not confidence intervals. Anchor correction contributed much of this improvement. The full correction-and-calibration procedure further reduced observed error in this comparison.
+
+COMBAT supported only 5–9% of decisions at 5–9% observed error. Frequent abstention limits overconfident interpretation but also restricts practical usefulness. The current evidence does not show broad recovery of participant biomarker calls across both cohorts. Marker-level call counts and participant-level uncertainty are needed before emphasizing small or zero error rates.
+
+### Completed scVAEIT comparison
+
+| Stephenson predictor | RMSE | Participant success | Calls | Call error |
+| --- | --- | --- | --- | --- |
+| Ridge with five anchors | 0.54 | 82% | 35% | 1.6% |
+| scVAEIT with five anchors | 0.80–0.92 | 82–83% | 23% | 3.0% |
+
+
+
+The updated supplied report describes 200 epochs per split, near a loss plateau, replacing its stale 100-epoch and ongoing 300-epoch passages. scVAEIT did not outperform measured-input ridge in these reported runs, despite similar calibrated coverage. Calls and errors in this table are each method’s own operating point, not a matched-call-rate architecture comparison. Raw training logs and prediction-level exports were not supplied locally, so this revision records reported completion rather than independently verifying convergence or reproducing these numbers.
+
+## Critical evaluation of the hypotheses
+
+| Hypothesis or claim | Assessment | Evidence |
+| --- | --- | --- |
+| Measured panels improve prediction | Supported here | Ridge RMSE improved in both cohorts |
+| Participant calibration improves reliability | Supported here | Participant success improved across reported predictors |
+| Learned correction helps universally | Not supported | Simple controls nearly matched it; COMBAT inconsistent |
+| Inference enables useful marker calls | Conditional | Stephenson stronger; COMBAT mostly inconclusive |
+
+
+
+The initial project emphasized learning a correction and selecting anchors. The control experiments weakened claims that these complex components were essential. The refined hypothesis is that measured panels can improve informativeness at comparable participant reliability. Evidence is strongest for direct measured inputs to ridge and for participant calibration. It does not establish that all totalVI corrections improve or that every observed benefit was prospectively specified.
+
+### Remaining limits
+
+Both cohorts are COVID-era blood studies. Random participant splits largely evaluate represented processing environments. Shared processing pools can limit exchangeability, and the four Sanger participants do not establish a general requirement for site-specific calibration. Testing a new pool, new disease context or fully unseen RNA requires a separate protocol.
+
+Repeated calibration/test allocations and overlapping train/held-out splits reuse participants. They do not increase the number of independent biological units. Reported bootstrap uncertainty should operate at the participant level after appropriate aggregation. Some summaries here lack their underlying denominators and intervals. Coverage conclusions also depend on the exact target list and the distinction between observed ADT counts and denoised expression.
+
+Association with depth or processing pool does not establish the causal source of errors. Negative adjusted severity associations cannot prove the absence of biological information. A cell-type-balanced sensitivity and preservation of measured within-cell-type marker differences are especially important when interpreting shared corrections.
+
+The small-panel result concerns shared errors and selected surface markers. It does not establish reconstruction of an entire proteome. Isotype controls can be useful where they already exist, but their availability and assay cost are not universal. More complex imputers may require different tuning; the scVAEIT result applies to the reported configuration.
+
+## 6 Scientific insights and individual contributions
+
+Prediction information and uncertainty reliability are distinct. A calibrated method can give acceptable coverage while remaining too uncertain to support many decisions, as COMBAT illustrates. Calibration cannot create biological signal that the measured inputs lack.
+
+A small measured panel can supply participant context without covering every protein’s biology. Simple correction controls explain much of the benefit in Stephenson, while direct measured inputs improved ridge prediction in both cohorts. This suggests that evaluating how measurements enter the predictor is at least as important as designing a more elaborate correction afterward.
+
+The supported conclusion is that small panels improved prediction and participant calibration clarified which immune-marker inferences remained uncertain in the studied settings. The results support specific hypotheses rather than proving universal superiority over totalVI. For biomarker research, an explicit inconclusive result can be informative, but useful-call yield must accompany any claim about reliability.
+
+Future experiments should freeze thresholds and panels, evaluate measured marker-positive fractions within cell types, and test a processing pool excluded from development. A biological case study can assess whether correction preserves participant differences in CD38 or HLA-DR. These are proposed analyses, not completed findings.
+
+### Equal overall contributions
+
+Anel Umirbaeva and Nazira Dunbayeva contributed equally overall (50% each), as specified by the team. The detailed role allocation below is proposed for author confirmation before submission.
+
+| Component | Anel Umirbaeva | Nazira Dunbayeva |
+| --- | --- | --- |
+| Problem | Biological motivation and marker question | Reliability question and hypotheses |
+| Literature | Measurement noise and cohort biology | Imputation and uncertainty methods |
+| Code and methods | Data preparation and baseline experiments | Anchor, calibration and evaluation code |
+| Rationale | Shared-error analysis and correction controls | Participant scores and assumptions |
+| Evaluation | Accuracy and cohort comparisons | Coverage and selective marker calls |
+| Insights | Biological interpretation and figures | Limitations and reproducible reporting |
+
+
+
+## Reproducibility and references
+
+Code and deliverables: https://github.com/nazirad19/proteoguard. This documentation revision does not retrain models or rescore cohort predictions. Numerical values and original scientific plots come from the supplied report and figures. The study-design artwork is an AI-generated conceptual illustration checked against the reported allocations; its heatmaps and example plots are not measured results.
+
+The repository includes the analysis scripts, configuration fixes, an ordered runner and lightweight CPU tests. The supplied archive lacked cohort matrices, saved predictions, exact exported participant/protein manifests and full result CSVs. Their absence locally does not show they are absent on the research server. Fresh-clone end-to-end reproduction remains unverified. The reproducibility document records preparation, environment, provenance and quantile edge cases that still require verification.
+
+The runtime specification targets Python 3.11 and scvi-tools 1.4.2, but it is not the original server environment lock. Record package versions, GPU metadata, fit seeds, participant/target identifiers and input/output checksums. For scVAEIT, archive each completed run’s configuration, logs and prediction checksum: its script can skip existing prediction files, so changing an epoch setting alone does not establish a new fit. Retain separate environments where required.
+
+Figures 2 and 3 reuse supplied results rather than regenerating them from raw outputs. README links identify the current course report and slides. Detailed historical execution fixes remain in docs/REPRODUCIBILITY.md. No claim of full numerical reproduction is added by this documentation update.
+
+[1] Gayoso et al. Joint probabilistic modeling of single-cell multi-omic data with totalVI. Nature Methods (2021). https://doi.org/10.1038/s41592-020-01050-x
+
+[2] Lakkis et al. A multi-use deep learning method for CITE-seq and single-cell RNA-seq data integration with cell surface protein prediction and imputation. Nature Machine Intelligence (2022). https://doi.org/10.1038/s42256-022-00545-w
+
+[3] Du et al. Robust probabilistic modeling for single-cell multimodal mosaic integration and imputation via scVAEIT. PNAS (2022). https://doi.org/10.1073/pnas.2214414119
+
+[4] Mulè et al. Normalizing and denoising protein expression data from droplet-based single cell profiling. Nature Communications (2022). https://doi.org/10.1038/s41467-022-29356-8
+
+[5] Lee, Barber and Willett. Distribution-free inference with hierarchical data. https://arxiv.org/abs/2306.06342
+
+[6] Stephenson et al. Single-cell multi-omics analysis of the immune response in COVID-19. Nature Medicine (2021). https://doi.org/10.1038/s41591-021-01329-2
+
+[7] COMBAT Consortium. A blood atlas of COVID-19 defines hallmarks of disease severity and specificity. Cell (2022). Data: https://doi.org/10.5281/zenodo.6120249
