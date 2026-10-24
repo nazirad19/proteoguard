@@ -1,0 +1,10 @@
+quantity,paper,reproduced
+"RNA-only ridge RMSE, all proteins, fit 2026",0.64,0.6388
+"RNA-only ridge RMSE, all proteins, fit 2027",0.64,0.6369
+"RNA-only ridge RMSE, non-sentinel, fit 2026",0.64,0.6395
+"RNA-only ridge RMSE, non-sentinel, fit 2027",0.64,0.6383
+"RNA+sentinels ridge RMSE, non-sentinel, fit 2026",0.55,0.5482
+"RNA+sentinels ridge RMSE, non-sentinel, fit 2027",0.55,0.5452
+"held-out participants, fit 2026",61.0,61.0
+"held-out participants, fit 2027",60.0,60.0
+design participants per fit,20.0,20.0

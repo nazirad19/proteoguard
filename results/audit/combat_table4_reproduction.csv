@@ -1,0 +1,9 @@
+predictor,correction,calibration,cov_paper,cov_repro,below85_paper,below85_repro,ge90_paper,ge90_repro,IS_paper,IS_repro,width_paper,width_repro,max_abs_diff
+ridge,none (design mean),cell-wise conformal,0.899,0.899,0.047,0.047,0.56,0.556,2.79,2.787,2.02,2.016,0.004
+ridge,none (design mean),HCP (Lee et al.),0.96,0.96,0.006,0.006,0.99,0.986,3.01,3.008,2.63,2.623,0.007
+ridge,none (design mean),participant-block,0.917,0.917,0.023,0.023,0.82,0.82,2.81,2.804,2.15,2.144,0.006
+ridge,ProteoGuard shared map,participant-block,0.917,0.917,0.022,0.022,0.82,0.82,2.79,2.783,2.12,2.121,0.007
+ridge,isotype panel,participant-block,0.917,0.917,0.02,0.02,0.82,0.821,2.79,2.789,2.14,2.132,0.008
+ridge + sentinels,none (design mean),cell-wise conformal,0.899,0.899,0.05,0.049,0.55,0.552,2.39,2.387,1.73,1.732,0.003
+ridge + sentinels,none (design mean),HCP (Lee et al.),0.959,0.959,0.006,0.006,0.98,0.984,2.58,2.577,2.23,2.226,0.004
+ridge + sentinels,none (design mean),participant-block,0.918,0.918,0.023,0.023,0.82,0.816,2.41,2.405,1.83,1.829,0.005

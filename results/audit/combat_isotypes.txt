@@ -1,0 +1,4 @@
+AB_IgG1isotypctrl
+AB_IgG2aisotypectrl
+AB_IgG2bisotypectrl_mouse
+AB_IgG2bisotypectrl_rat

@@ -1,0 +1,4 @@
+AB_Mouse IgG1_K_Iso
+AB_Mouse_IgG2a_K_Iso
+AB_Mouse_IgG2b_K_Iso
+AB_Rat_IgG2b_K_Iso

@@ -1,0 +1,7 @@
+cohort,fit,model,rmse,attain,IS,width
+Stephenson,2026,baseline (their recipe),0.5329,0.823,2.282,1.847
+Stephenson,2026,improved,0.5249,0.821,2.17,1.756
+Stephenson,2027,baseline (their recipe),0.5412,0.824,2.331,1.889
+Stephenson,2027,improved,0.5306,0.819,2.203,1.786
+COMBAT,both,baseline (their recipe),0.55,0.82,2.36,1.828
+COMBAT,both,improved,0.533,0.82,2.198,1.75

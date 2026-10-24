@@ -126,3 +126,45 @@ For one protein, a participant-block rank argument with 15 exchangeable calibrat
 ## License
 
 MIT, attributed to ProteoGuard contributors. See [LICENSE](LICENSE).
+# Additions from the 24 October 2026 verification and extension round
+
+Merge these sections into README.md.
+
+## New analysis code
+
+| Path | What it is |
+| --- | --- |
+| `scripts/analysis/proteoguard_upgrades.py` | Calibration upgrades on top of the participant-block rule: normalized (multiplicative) scores, panel-level tolerance (simultaneous and fraction-tau), Mondrian group-conditional calibration with an explicit validity label, conformal risk control for the decision layer, loaders for the `pred_*.npz` schema, and a diagnostic for whether normalization will pay. Requires numpy >= 1.22 (`np.quantile(method=...)`). |
+| `scripts/analysis/upgrades_real.py` | Driver. Point it at a prediction NPZ with the participant-role manifests. Pass **every** predictor's sentinel JSON and an explicit isotype file — name matching is deliberately not used, because `IgD`, `IgM`, `IgA` and `IgG_Fc` are real markers in both panels. `--expect-targets 177` aborts rather than silently reporting on the wrong protein set. |
+| `scripts/stephenson/stephenson_prep.py` | Stephenson preparation from `haniffa21.processed.h5ad`, mirroring `combat_prep.py`. Reproduces 115,683 cells and 118 participants (60 Ncl / 47 Cambridge / 11 Sanger) against the published 115,708. Fills the documented gap where the original preparation cells were missing. |
+| `tests/test_upgrades.py` | 12 CPU tests that check the **guarantees**, not just execution: the rank rule and its k=13 at n=15, the +inf (never capped) behaviour when k>n, the n_g>=4 Mondrian minimum, empirical coverage against the bound, panel tolerance beating per-protein on whole-panel attainment, the 1/(n+1) certification floor, and CRC loss monotonicity. |
+
+Run the tests with the module importable:
+
+```bash
+PYTHONPATH=scripts/analysis python -m unittest discover -s tests -v
+```
+
+Add `PYTHONPATH: scripts/analysis` to the `env:` block of `.github/workflows/checks.yml` so CI
+picks them up.
+
+## Reproduction and audit outputs
+
+`results/audit/` holds the regenerated values behind the 24 October round, including the
+paper-vs-reproduced tables for the COMBAT Table 4 ridge rows (largest deviation 0.008), the cohort
+construction checks, the stratum-held-out calibration results for both cohorts, and the verified
+ADT panel and isotype channel lists for each cohort.
+
+`docs/` holds the written records: `REPRODUCTION_2026-10-24.md`, `STRATUM_TRANSFER.md`,
+`NOVELTY_CHECK.md`, `DEPTH_CONDITIONING_NEGATIVE.md` (a negative result, retained deliberately) and
+`REFERENCE_DETAILS.md`.
+
+No participant-level matrices or ADT counts are committed. Cohort objects are identified by
+SHA-256 in `docs/REPRODUCTION_2026-10-24.md`; obtain them from the sources in `docs/DATA_SOURCES.md`.
+
+## Known correction
+
+Both antibody panels carry **four** isotype controls, not five. The fifth channel matched by the
+pipeline's isotype regex is `AB_IgGFc` / `AB_IgG_Fc`, an anti-IgG-Fc channel measuring surface IgG —
+a real B-cell marker. The isotype-panel correction arm therefore used four controls plus one real
+marker; its conclusion is unaffected but its composition should be described accurately.

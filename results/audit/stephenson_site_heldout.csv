@@ -1,0 +1,13 @@
+fit,model,site,n_test,attain_site_heldout
+2026,baseline (their recipe),Sanger,4,0.501
+2026,baseline (their recipe),Cambridge,15,0.73
+2026,baseline (their recipe),Ncl,20,0.893
+2026,improved,Sanger,4,0.687
+2026,improved,Cambridge,15,0.816
+2026,improved,Ncl,20,0.798
+2027,baseline (their recipe),Sanger,4,0.537
+2027,baseline (their recipe),Cambridge,15,0.668
+2027,baseline (their recipe),Ncl,20,0.952
+2027,improved,Sanger,4,0.694
+2027,improved,Cambridge,15,0.72
+2027,improved,Ncl,20,0.901

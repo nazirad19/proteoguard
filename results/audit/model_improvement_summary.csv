@@ -1,0 +1,7 @@
+configuration,rmse,attain,IS,width,IS_vs_baseline_%,width_vs_baseline_%
+"paper, as published (Table 4)",0.55,0.82,2.405,1.829,1.9,0.1
+baseline reimplemented here,0.55,0.82,2.36,1.828,0.0,0.0
++ measured-depth features,0.548,,,,,
++ depth + cell-type features,0.537,0.83,2.304,1.799,-2.4,-1.6
++ adaptive (difficulty-model) intervals,0.537,0.822,2.21,1.754,-6.4,-4.0
++ SVD rank 200  [best],0.533,0.82,2.198,1.75,-6.9,-4.3

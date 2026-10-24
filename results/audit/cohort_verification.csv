@@ -1,0 +1,15 @@
+cohort,quantity,paper,reproduced,match,paper_source,note
+Stephenson,participants after LPS filter,118,118,True,draft v8 S3.5: '...leaving 118 participants',
+Stephenson,Newcastle participants,60,60,True,"draft v8 S3.5: '(60 Newcastle, 47 Cambridge, 11 Sanger)' - whole cohort, not the held-out or evaluation subset",
+Stephenson,Cambridge participants,47,47,True,"draft v8 S3.5: '(60 Newcastle, 47 Cambridge, 11 Sanger)' - whole cohort",
+Stephenson,Sanger participants,11,11,True,"draft v8 S3.5: '(60 Newcastle, 47 Cambridge, 11 Sanger)' - whole cohort; cf. 6 Sanger held out and 4 forming the external site (draft v8 S3.5; report PDF p2)",
+Stephenson,cells (1000/participant cap),115708,117185,False,draft v8 S3.5 / report S3 table,"NOT matched: ADT-presence filter not yet applied locally; expected to close the 1,477-cell gap"
+Stephenson,ADT channels,192,192,True,draft v8 S3.5 and report S3: '192 ADT channels',
+Stephenson,isotype controls,5,4,False,draft v8 S3.2 alternative (c) 'the five isotype controls' and S4.8 '192 antibodies including five isotype controls',NOT matched: 4 present by name in both public panels; 5th channel unidentified
+COMBAT,participants after exclusions,122,122,True,draft v8 S4.8: '122 participants after excluding low-density-neutrophil preparations',
+COMBAT,Oxford participants,110,110,True,"draft v8 S4.8: '(110 Oxford, 12 St Georges)'",
+COMBAT,St Georges participants,12,12,True,"draft v8 S4.8: '(110 Oxford, 12 St Georges)'",
+COMBAT,processing pools,10,10,True,draft v8 S4.8: 'multiplexed across 10 processing pools',
+COMBAT,cells (1000/participant cap),118649,118649,True,draft v8 S3.5 / report S3 table,
+COMBAT,ADT channels,192,192,True,draft v8 S3.5 and report S3: '192 ADT channels',
+COMBAT,isotype controls,5,4,False,draft v8 S3.2 alternative (c) 'the five isotype controls' and S4.8 '192 antibodies including five isotype controls',NOT matched: 4 present by name in both public panels; 5th channel unidentified
