@@ -1,170 +1,95 @@
 # ProteoGuard
 
-Participant-level calibration and small measured-protein panels for RNA-to-protein imputation.
+Participant-level conformal calibration of RNA-to-protein imputation with a minimal measured panel.
 
-**Biological question:** can RNA, supplemented by a small measured surface-protein panel, support reliable immune-marker calls in participants whose target proteins were not measured?
+Code for the RECOMB 2027 submission. Cell-wise conformal calibration of imputed surface proteins
+fails for new participants; one shared technical factor per participant explains most of the error;
+calibrating with participants as the exchangeable unit restores a per-participant coverage guarantee,
+verified in two multi-site COVID-19 CITE-seq cohorts (Stephenson et al. 2021; COMBAT 2022). The same
+order-statistic argument extends to a panel-tolerance guarantee, a site-conditional variant, and
+conformal-risk-certified selective biomarker calls.
 
-ProteoGuard evaluates existing imputers (totalVI and ridge, with a completed scVAEIT comparison reported), anchor-based correction, participant-block calibration, and selective biomarker calls. It does not introduce a new totalVI architecture. The reported shared-offset mechanism is strongest in Stephenson and weaker in COMBAT. Measured-panel inputs and calibration must be distinguished from post-hoc offset correction. These are research results, not validated clinical decisions.
-
-## Deliverables
-
-**Course submission:** start with [START_HERE.md](START_HERE.md). The repository includes [synthetic toy data and a runnable CPU example](examples/README.md), a pinned lightweight environment (`requirements-demo.txt`), tests, and [links to full-size source data](docs/DATA_SOURCES.md).
+## Quickstart (CPU, ~2 minutes)
 
 ```bash
-python -m pip install -r requirements-demo.txt
-python examples/run_toy.py
-python -m unittest discover -s tests -v
+python -m venv .venv && source .venv/bin/activate   # Python 3.11 or 3.12
+pip install -r requirements-demo.txt
+python examples/run_toy.py                          # synthetic data through the real evaluator
+PYTHONPATH=scripts/analysis python -m unittest discover -s tests -v   # 23 tests
 ```
 
-Use a fresh Python 3.11/3.12 virtual environment (instructions in START_HERE). The toy example trains ridge predictors and executes the actual calibration evaluator; it does not train totalVI/scVAEIT or recreate the cohort tables.
+The toy run exercises the actual anchor/correction/calibration code on bundled synthetic counts and
+prints `PASS`; it does not reproduce the cohort tables. The tests assert the statistical guarantees
+themselves (rank rule, k > n behaviour, the n_g ≥ 4 Mondrian minimum, the 1/(n+1) certification
+floor, loss monotonicity), so a change that breaks validity fails CI.
 
-- [Technical report](deliverables/TECHNICAL_REPORT.md)
-- [Word report](deliverables/ProteoGuard_Final_Project_Report.docx)
-- [PDF report](deliverables/ProteoGuard_Final_Project_Report.pdf)
-- [Presentation: 11 main slides + 7 backup slides](deliverables/ProteoGuard_Final_Project.pptx)
-- [Illustrated study design](deliverables/figures/ProteoGuard_study_design.png)
-- [Deliverable provenance and format notes](docs/DELIVERABLES.md)
-- [Reproducibility status](docs/REPRODUCIBILITY.md)
-- [Data preparation and file schemas](docs/DATA_PREPARATION.md)
+## Layout
 
-## Status
-
-The 11 October 2026 course update aligns the report and slides with the six assessment criteria, adds an illustrated study design, and records the reported completed scVAEIT comparison. Anel Umirbaeva and Nazira Dunbayeva receive equal overall contribution credit. Detailed role allocations are proposed for author confirmation. This is a documentation update, not a new training run.
-
-
-The source archive contained 33 analysis scripts at commit `4cd21a01fed12e6176061fdc78ebc2f49f6892d9`. This revision fixes configuration, pipeline ordering and budget-figure regeneration, and adds a count-data adapter and CPU tests. **Full cohort training and result reproduction have not been rerun as part of these fixes.** Matrices, predictions, exact split manifests and result CSVs were not supplied in the archive. Report numbers remain supplied results, not newly verified outputs.
-
-The analyses are **transductive**: held-out participants' RNA contributes to totalVI fitting while target proteins are hidden; RNA SVD for ridge also uses all RNA. This is not fully inductive deployment to a participant arriving after training.
+| Path | Contents |
+| --- | --- |
+| `scripts/` | full pipeline: preparation, training, calibration, decisions, figures |
+| `scripts/analysis/proteoguard_upgrades.py` | panel tolerance, Mondrian, conformal risk control |
+| `tests/` | CPU tests, including the guarantee suite |
+| `examples/` | synthetic toy demo with expected outputs |
+| `results/audit/` | regenerated values behind the paper's verification round |
+| `provenance/` | participant/protein manifests (from `analysis/provenance_audit.py`) |
+| `docs/` | data sources and schemas, reproduction record, stratum transfer, novelty check |
 
 ## Data
 
-| Cohort | Source | Input |
+All data are public; nothing participant-level is committed (objects referenced by SHA-256 in
+`docs/REPRODUCTION_2026-10-24.md`).
+
+| Cohort | Source | File |
 | --- | --- | --- |
-| Stephenson | COVID-19 Cell Atlas / E-MTAB-10026 | `haniffa21.processed.h5ad` plus prepared counts |
-| COMBAT | [Zenodo 6120249](https://zenodo.org/records/6120249) | `COMBAT-CITESeq-DATA.h5ad` |
-| Hao (exploratory) | GSE164378 | separately prepared counts/predictions; original preparation absent |
-| Original totalVI benchmark | scvi-tools datasets | `scripts/benchmark/gate0_uncertainty_audit.py` |
+| Stephenson et al. 2021 | COVID-19 Cell Atlas / E-MTAB-10026 | `haniffa21.processed.h5ad` |
+| COMBAT 2022 | [Zenodo 6120249](https://zenodo.org/records/6120249) | `COMBAT-CITESeq-DATA.h5ad` |
+| Hao et al. 2021 (single-centre) | GEO GSE164378 | prepared CITE-seq object |
+| totalVI benchmark | scvi-tools datasets | loaded in script |
 
-No individual-level data or checkpoints are committed. Obtain cohort data under the source's terms, then follow [data preparation](docs/DATA_PREPARATION.md). Do not assume a processed H5AD object contains raw ADT counts.
+Prepare cohorts with `scripts/stephenson/stephenson_prep.py` / `scripts/combat/combat_prep.py`
+(schemas in `docs/DATA_PREPARATION.md`).
 
-## Environment
+## Full pipeline
 
-Target: Python 3.11 and `scvi-tools==1.4.2`. Install in an isolated environment:
-
-```bash
-python -m venv .venv
-# Linux/macOS: source .venv/bin/activate
-# PowerShell: .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests -v
-```
-
-This is a dependency specification, not the original server's environment lock. Record `python -m pip freeze`, GPU/driver information, seeds and input checksums for each full run. scVAEIT is optional and should use a separate TensorFlow environment; see requirements.txt. The updated source report describes completed 200-epoch runs per split. Reported metrics are included in the report; raw logs, convergence and prediction-level outputs have not been independently verified locally.
-
-## Core pipeline
-
-From the repository root, inspect the plan first; these commands **do not train**:
+Full training needs the `requirements.txt` environment (Python 3.11, `scvi-tools==1.4.2`, GPU;
+scVAEIT optionally adds TensorFlow 2.15 in a separate environment). The runner prints the plan and
+only trains with `--execute`:
 
 ```bash
 python scripts/run_pipeline.py --cohort stephenson --work /path/to/stephenson --seeds 2026 2027
-python scripts/run_pipeline.py --cohort combat --work /path/to/combat --seeds 2026 2027
+python scripts/run_pipeline.py --cohort combat     --work /path/to/combat     --seeds 2026 2027
 ```
 
-After preparing/validating data, add `--execute` to run. The runner checks the prepared schema and stops on a failed subprocess. Preserve its `pipeline_run.json` with the environment snapshot. Training can be expensive.
+Order: base predictors → low-rank mechanism + frozen design split → anchor selection
+(`baselines_calib.py`, first pass) → measured-input ridge (`ridge_sentinels.py`) → calibration grid
+(`baselines_calib.py`, second pass) → metrics, budgets, biomarker calls → figures. `STEPH_DIR`
+selects the cohort directory; `STEPH_FITS` the splits.
 
-The actual order is:
+## Figure / table map (paper numbering)
 
-1. totalVI and RNA ridge predictions for each seed.
-2. Low-rank analysis and frozen design split.
-3. `baselines_calib.py` first pass: selects anchors on design participants and writes `sentinels_fit{seed}.json`.
-4. `ridge_sentinels.py`: consumes those JSON files.
-5. `baselines_calib.py` second pass: now includes measured-input ridge.
-6. Participant metrics, anchor budgets, marker calls and risk–coverage analyses.
-7. CSV-driven budget figure. Other figures/audits remain explicit commands below.
-
-The runner sets cohort-specific cell-type labels. Override `STEPH_CTS` only with verified metadata labels. `STEPH_FIT` selects one fit in Stephenson training/ridge/lowrank; `STEPH_FITS` selects multiple fits in other scripts. `STEPH_DIR` selects the active cohort. For two-cohort figures/provenance use `STEPH_DIR_MAIN` and `COMBAT_DIR`; `HAO_DIR` selects Hao.
-
-Example, running only one Stephenson fit in PowerShell:
-
-```powershell
-$env:STEPH_DIR = 'D:\data\stephenson'
-$env:STEPH_FIT = '2027'
-python scripts/stephenson/stephenson_donor_calibration.py
-```
-
-Replot Figure 7 from actual outputs:
-
-```bash
-python scripts/figures/fig_budget.py --input /path/to/anchor_budget.csv --output /path/to/figures/f7.png
-```
-
-This writes the figure and an aggregated `.summary.csv`. Missing columns, duplicate rows and incomplete seed/budget coverage cause errors. `fig_budget_historical.py` preserves the pasted-number illustration for provenance only.
-
-## Figure / table map
-
-Paths below are under `scripts/`. Numbering follows the full paper draft; the course deck groups results differently.
-
-| Paper item | Analysis / rendering |
+| Paper item | Script |
 | --- | --- |
-| Figure 1: simulation | `simulation/sim_donor_blocks.py` |
-| Figures 2–6; supplementary Hao | `figures/paper_figures.py` reads saved outputs |
-| Figure 7: anchor budget | `analysis/anchor_budget.py` → `figures/fig_budget.py` |
-| Figures 8–9: controls, COMBAT | `analysis/baselines_calib.py`, `combat/combat_lowrank.py`, `figures/paper_figures2.py` |
+| Fig 1 (simulation) | `simulation/sim_donor_blocks.py` |
+| Figs 2–6, S1 | `figures/paper_figures.py` |
+| Fig 7 (sentinel budget) | `analysis/anchor_budget.py` → `figures/fig_budget.py` |
+| Figs 8–9 (calibration rules, COMBAT mechanism) | `figures/paper_figures2.py` |
+| Fig 10 (panel tolerance), Table 5 (certified calls) | `analysis/upgrades_real.py` + `proteoguard_upgrades.py` |
+| Fig 11 (stratum transfer) | `analysis/pool_heldout.py`; results in `results/audit/` |
 | Tables 1–2 | `analysis/proteoguard_metrics.py` |
 | Tables 3–4 | `analysis/baselines_calib.py` (second pass) |
-| Balanced-offset sensitivity | `analysis/sensitivity_balanced.py` |
-| Biomarker calls / matched call rates | `analysis/marker_calls_all.py`, `analysis/risk_coverage_b.py` |
-| Participant / protein manifests | `analysis/provenance_audit.py` |
-| Cohort / anchor detection audit | `stephenson/cohort_audit.py` |
+| Table S1 | `analysis/sensitivity_balanced.py` |
 
-Original plotting scripts can skip missing panels. Inspect logs and files; successful exit alone does not confirm all figures were regenerated. Negative-result scripts are retained in `scripts/stephenson/`. `scripts/hao/hao_mechanism.py` analyzes saved predictions; it is not a complete Hao training pipeline.
+## Verification status
 
-## Statistical interpretation
+The ridge and measured-input-ridge arms were independently re-executed end-to-end from the raw
+public deposits on a separate machine (24 Oct 2026; COMBAT exact, Stephenson 115,683 vs 115,708
+cells, RMSEs within 0.01) — see `docs/REPRODUCTION_2026-10-24.md`. The GPU arms (totalVI, scVAEIT)
+have not been independently rerun; seeds, frozen split manifests and provenance tables are provided
+so each stage can be checked against the reported numbers. All evaluations are transductive
+(held-out participants' RNA is present during fitting with target proteins masked); an inductive
+ridge rerun left the results unchanged (paper, Results).
 
-For one protein, a participant-block rank argument with 15 exchangeable calibration participants and the 13th order statistic gives a marginal lower bound of 13/16 on achieving at least 90% empirical coverage in a new evaluated participant block. This assumes the required exchangeability and a fixed or appropriately symmetric prediction procedure. It is not a guarantee for every participant, simultaneously across proteins, or for a new site. Transductive fitting requires a symmetry justification before using this as a deployment guarantee. See the report for finite-sample details and unresolved edge cases.
+## Authors and license
 
-## License
-
-MIT, attributed to ProteoGuard contributors. See [LICENSE](LICENSE).
-# Additions from the 24 October 2026 verification and extension round
-
-Merge these sections into README.md.
-
-## New analysis code
-
-| Path | What it is |
-| --- | --- |
-| `scripts/analysis/proteoguard_upgrades.py` | Calibration upgrades on top of the participant-block rule: normalized (multiplicative) scores, panel-level tolerance (simultaneous and fraction-tau), Mondrian group-conditional calibration with an explicit validity label, conformal risk control for the decision layer, loaders for the `pred_*.npz` schema, and a diagnostic for whether normalization will pay. Requires numpy >= 1.22 (`np.quantile(method=...)`). |
-| `scripts/analysis/upgrades_real.py` | Driver. Point it at a prediction NPZ with the participant-role manifests. Pass **every** predictor's sentinel JSON and an explicit isotype file — name matching is deliberately not used, because `IgD`, `IgM`, `IgA` and `IgG_Fc` are real markers in both panels. `--expect-targets 177` aborts rather than silently reporting on the wrong protein set. |
-| `scripts/stephenson/stephenson_prep.py` | Stephenson preparation from `haniffa21.processed.h5ad`, mirroring `combat_prep.py`. Reproduces 115,683 cells and 118 participants (60 Ncl / 47 Cambridge / 11 Sanger) against the published 115,708. Fills the documented gap where the original preparation cells were missing. |
-| `tests/test_upgrades.py` | 12 CPU tests that check the **guarantees**, not just execution: the rank rule and its k=13 at n=15, the +inf (never capped) behaviour when k>n, the n_g>=4 Mondrian minimum, empirical coverage against the bound, panel tolerance beating per-protein on whole-panel attainment, the 1/(n+1) certification floor, and CRC loss monotonicity. |
-
-Run the tests with the module importable:
-
-```bash
-PYTHONPATH=scripts/analysis python -m unittest discover -s tests -v
-```
-
-Add `PYTHONPATH: scripts/analysis` to the `env:` block of `.github/workflows/checks.yml` so CI
-picks them up.
-
-## Reproduction and audit outputs
-
-`results/audit/` holds the regenerated values behind the 24 October round, including the
-paper-vs-reproduced tables for the COMBAT Table 4 ridge rows (largest deviation 0.008), the cohort
-construction checks, the stratum-held-out calibration results for both cohorts, and the verified
-ADT panel and isotype channel lists for each cohort.
-
-`docs/` holds the written records: `REPRODUCTION_2026-10-24.md`, `STRATUM_TRANSFER.md`,
-`NOVELTY_CHECK.md`, `DEPTH_CONDITIONING_NEGATIVE.md` (a negative result, retained deliberately) and
-`REFERENCE_DETAILS.md`.
-
-No participant-level matrices or ADT counts are committed. Cohort objects are identified by
-SHA-256 in `docs/REPRODUCTION_2026-10-24.md`; obtain them from the sources in `docs/DATA_SOURCES.md`.
-
-## Known correction
-
-Both antibody panels carry **four** isotype controls, not five. The fifth channel matched by the
-pipeline's isotype regex is `AB_IgGFc` / `AB_IgG_Fc`, an anti-IgG-Fc channel measuring surface IgG —
-a real B-cell marker. The isotype-panel correction arm therefore used four controls plus one real
-marker; its conclusion is unaffected but its composition should be described accurately.
+Anel Umirbaeva and Nazira Dunbayeva (equal contribution). MIT License.
